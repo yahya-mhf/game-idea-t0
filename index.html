@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seven‑Segment Puzzle</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+            user-select: none;
+        }
+        body {
+            background: #1e2b3a;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .game-container {
+            display: flex;
+            gap: 40px;
+            background: #2c3e50;
+            padding: 30px;
+            border-radius: 40px;
+            box-shadow: 0 20px 30px rgba(0,0,0,0.6);
+            max-width: 1200px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        /* left side – seven‑segment panels */
+        .left-panel {
+            background: #1e2b3a;
+            border-radius: 30px;
+            padding: 30px 20px;
+            box-shadow: inset 0 0 10px #0f1a24;
+        }
+        .digits-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .digit-container {
+            position: relative;
+            width: 80px;
+            height: 120px;
+            background: #2c3e50;
+            border-radius: 16px;
+            box-shadow: 0 0 0 2px #0f1a24, inset 0 0 5px black;
+        }
+        .segment {
+            position: absolute;
+            background: #3d4f5e;
+            border-radius: 4px;
+            transition: background 0.1s, box-shadow 0.1s;
+            cursor: pointer;
+        }
+        .segment.on {
+            background: #ff4d4d;
+            box-shadow: 0 0 12px #ff6666;
+        }
+        /* disabled (broken) segments */
+        .segment.broken {
+            background: #2c3e50 !important;
+            cursor: not-allowed;
+            box-shadow: none !important;
+            opacity: 0.5;
+        }
+        /* segment positions – classic 7‑seg */
+        .seg-a { top: 8px; left: 18px; width: 44px; height: 8px; }
+        .seg-b { top: 18px; right: 12px; width: 8px; height: 32px; }
+        .seg-c { bottom: 18px; right: 12px; width: 8px; height: 32px; }
+        .seg-d { bottom: 8px; left: 18px; width: 44px; height: 8px; }
+        .seg-e { bottom: 18px; left: 12px; width: 8px; height: 32px; }
+        .seg-f { top: 18px; left: 12px; width: 8px; height: 32px; }
+        .seg-g { top: 54px; left: 18px; width: 44px; height: 8px; }
+
+        /* right side */
+        .right-panel {
+            background: #1e2b3a;
+            border-radius: 30px;
+            padding: 30px;
+            min-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            box-shadow: inset 0 0 10px #0f1a24;
+        }
+        .clue-sign {
+            background: #0f1a24;
+            border-radius: 50px;
+            padding: 20px;
+            text-align: center;
+            font-size: 2.2rem;
+            letter-spacing: 8px;
+            box-shadow: 0 5px 0 #050a0f;
+            color: white;
+            line-height: 1.4;
+        }
+        .clue-sign span {
+            display: inline-block;
+            filter: drop-shadow(0 2px 2px black);
+        }
+        .keyboard-area {
+            background: #2c3e50;
+            border-radius: 30px;
+            padding: 20px;
+        }
+        .word-display {
+            background: #0f1a24;
+            border-radius: 40px;
+            padding: 15px 20px;
+            text-align: center;
+            font-size: 2.5rem;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 10px;
+            color: #a0f0e0;
+            text-shadow: 0 0 5px cyan;
+            margin-bottom: 25px;
+            border: 2px solid #3d5a73;
+            min-height: 80px;
+            word-break: break-all;
+        }
+        .keyboard-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .key-btn {
+            background: #3d5a73;
+            border: none;
+            color: white;
+            font-size: 1.4rem;
+            font-weight: bold;
+            padding: 12px 0;
+            border-radius: 30px;
+            box-shadow: 0 5px 0 #1e2b3a;
+            cursor: pointer;
+            transition: 0.05s linear;
+        }
+        .key-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #1e2b3a;
+        }
+        .key-btn.special {
+            background: #b87c4b;
+            grid-column: span 2;
+        }
+        .key-btn.wide {
+            grid-column: span 3;
+        }
+        .submit-btn {
+            background: #4bb87c;
+            border: none;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 60px;
+            box-shadow: 0 6px 0 #1e5a3a;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+            transition: 0.05s linear;
+        }
+        .submit-btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 1px 0 #1e5a3a;
+        }
+        .status-msg {
+            text-align: center;
+            color: #ffd966;
+            font-size: 1.3rem;
+            font-weight: bold;
+            min-height: 2em;
+        }
+        .footer-note {
+            color: #7f8c8d;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+<div class="game-container">
+    <!-- LEFT SIDE: six 7‑segment displays with clickable LEDs -->
+    <div class="left-panel">
+        <h2 style="color: white;">Player 1</h2>
+        <div class="digits-row" id="digitsRow"></div>
+        <div style="text-align: center; margin-top: 20px; color: #b0c4de;">
+            ⚡ click any segment to toggle (except the dimmed ones) ⚡
+        </div>
+    </div>
+
+    <!-- RIGHT SIDE: clue + keyboard -->
+    <div class="right-panel">
+        <h2 style="color: white;">Player 2</h2>
+        <div class="clue-sign">
+            <span>🖐️</span> <span>⚪</span> <span>☝️</span>
+            <span>⬛⬛⬛⬛</span> <span>⬛⬛⬛⬛⬛⬛</span> <span>⬛⬛⬛</span>
+        </div>
+
+        <div class="keyboard-area">
+            <div class="word-display" id="wordDisplay">______</div>
+
+            <div class="keyboard-grid" id="keyboardGrid">
+                <!-- letters A–Z will be generated by js -->
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button class="key-btn special" id="backspaceBtn">⌫</button>
+                <button class="key-btn special" id="clearBtn">CLEAR</button>
+            </div>
+
+            <button class="submit-btn" id="submitBtn">✔ SUBMIT</button>
+            <div class="status-msg" id="statusMsg"></div>
+        </div>
+        <div class="footer-note">
+            <!-- set left digits to 5 0 1 4 6 3 · type SOLVED -->
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // --- seven‑segment configuration ---
+        const DIGIT_COUNT = 6;
+        // target digits: 5,0,1,4,6,3 (in that order)
+        const TARGET_DIGITS = [5, 0, 1, 4, 6, 3];
+        // segment masks (a=0, b=1, c=2, d=3, e=4, f=5, g=6)
+        const SEG_MASKS = {
+            0: 0b0111111, // bits 0-5 on, g off -> 63
+            1: 0b0000110, // b,c -> 6
+            2: 0b1011011, // a,b,d,e,g -> 91
+            3: 0b1001110, // a,b,c,d,g -> 79
+            4: 0b1100010, // f,g,b,c -> 102
+            5: 0b1101101, // a,f,g,c,d -> 109
+            6: 0b1111001, // a,f,e,d,c,g -> 125
+            7: 0b0000111, // a,b,c -> 7
+            8: 0b1111111, // all -> 127
+            9: 0b1101111  // a,b,c,d,f,g -> 111
+        };
+
+        // state: [digitIndex][segmentIndex] boolean (true = on)
+        let segState = Array(DIGIT_COUNT).fill().map(() => Array(7).fill(false));
+
+        // DOM references
+        const digitsRow = document.getElementById('digitsRow');
+        const wordDisplay = document.getElementById('wordDisplay');
+        const statusMsg = document.getElementById('statusMsg');
+        const keyboardGrid = document.getElementById('keyboardGrid');
+        const backspaceBtn = document.getElementById('backspaceBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // current word (max 6 chars)
+        let currentWord = '';
+
+        // ----- build seven‑segment displays (with disabled segments) -----
+        function createDigitDisplays() {
+            digitsRow.innerHTML = '';
+            for (let d = 0; d < DIGIT_COUNT; d++) {
+                const digitDiv = document.createElement('div');
+                digitDiv.className = 'digit-container';
+                digitDiv.dataset.digit = d;
+
+                // create seven segments with appropriate classes
+                const segments = [
+                    { name: 'a', class: 'seg-a' },
+                    { name: 'b', class: 'seg-b' },
+                    { name: 'c', class: 'seg-c' },
+                    { name: 'd', class: 'seg-d' },
+                    { name: 'e', class: 'seg-e' },
+                    { name: 'f', class: 'seg-f' },
+                    { name: 'g', class: 'seg-g' }
+                ];
+
+                segments.forEach((seg, idx) => {
+                    const segDiv = document.createElement('div');
+                    segDiv.className = `segment ${seg.class}`;
+                    segDiv.dataset.digit = d;
+                    segDiv.dataset.segment = idx; // 0=a,1=b,2=c,3=d,4=e,5=f,6=g
+
+                    // Check if this specific segment should be disabled (always off, unclickable)
+                    const isDisabled = (d === 3 && idx === 2) ||   // digit 3, segment c
+                                       (d === 4 && idx === 2) ||   // digit 4, segment c
+                                       (d === 5 && idx === 0);     // digit 5, segment a
+
+                    if (isDisabled) {
+                        segDiv.classList.add('broken');  // visual: dimmed, no pointer
+                        // Do NOT attach click listener – stays off forever
+                    } else {
+                        // Attach click listener to toggle
+                        segDiv.addEventListener('click', function(e) {
+                            const digit = parseInt(this.dataset.digit);
+                            const segIdx = parseInt(this.dataset.segment);
+                            segState[digit][segIdx] = !segState[digit][segIdx];
+                            if (segState[digit][segIdx]) {
+                                this.classList.add('on');
+                            } else {
+                                this.classList.remove('on');
+                            }
+                            updateStatusMessage();
+                        });
+                    }
+
+                    digitDiv.appendChild(segDiv);
+                });
+
+                digitsRow.appendChild(digitDiv);
+            }
+        }
+
+        // ----- helper: get current mask for a digit -----
+        function getDigitMask(d) {
+            let mask = 0;
+            for (let s = 0; s < 7; s++) {
+                if (segState[d][s]) mask |= (1 << s);
+            }
+            return mask;
+        }
+
+        // ----- check if left side matches target digits -----
+        function leftSideMatchesTarget() {
+            for (let d = 0; d < DIGIT_COUNT; d++) {
+                const currentMask = getDigitMask(d);
+                const targetMask = SEG_MASKS[TARGET_DIGITS[d]];
+                if (currentMask !== targetMask) return false;
+            }
+            return true;
+        }
+
+        // ----- update status message (and check win condition) -----
+        function updateStatusMessage() {
+            const leftOK = leftSideMatchesTarget();
+            const wordOK = currentWord.toUpperCase() === 'SOLVED';
+            if (leftOK && wordOK) {
+                statusMsg.innerText = '✅ PUZZLE SOLVED! ✅';
+                statusMsg.style.color = '#a3e4a3';
+            } else if (leftOK) {
+                statusMsg.innerText = '✔ Left side correct – now type SOLVED';
+                statusMsg.style.color = '#ffd966';
+            } else if (wordOK) {
+                statusMsg.innerText = '✏ Word is SOLVED – but left digits must match 501463';
+                statusMsg.style.color = '#ffb366';
+            } else {
+                statusMsg.innerText = '⚙️ Set digits & type the word';
+                statusMsg.style.color = '#ffd966';
+            }
+        }
+
+        // ----- keyboard handling -----
+        function buildKeyboard() {
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+            keyboardGrid.innerHTML = '';
+            letters.forEach(letter => {
+                const btn = document.createElement('button');
+                btn.className = 'key-btn';
+                btn.innerText = letter;
+                btn.addEventListener('click', () => {
+                    if (currentWord.length < 6) {
+                        currentWord += letter;
+                        updateWordDisplay();
+                    }
+                });
+                keyboardGrid.appendChild(btn);
+            });
+        }
+
+        function updateWordDisplay() {
+            let displayStr = currentWord.padEnd(6, '_');
+            wordDisplay.innerText = displayStr;
+            updateStatusMessage();
+        }
+
+        // backspace
+        backspaceBtn.addEventListener('click', () => {
+            currentWord = currentWord.slice(0, -1);
+            updateWordDisplay();
+        });
+
+        // clear
+        clearBtn.addEventListener('click', () => {
+            currentWord = '';
+            updateWordDisplay();
+        });
+
+        // submit
+        submitBtn.addEventListener('click', () => {
+            const leftOK = leftSideMatchesTarget();
+            const wordOK = currentWord.toUpperCase() === 'SOLVED';
+            if (leftOK && wordOK) {
+                alert('🎉 CONGRATULATIONS! You solved the puzzle! 🎉');
+                statusMsg.innerText = '🏆 SOLVED! 🏆';
+            } else {
+                alert('Not yet. Make sure the left digits show 5 0 1 4 6 3 and you type SOLVED.');
+            }
+        });
+
+        // reset left side to all off (disabled segments remain off)
+        function resetLeftSide() {
+            for (let d = 0; d < DIGIT_COUNT; d++) {
+                for (let s = 0; s < 7; s++) {
+                    segState[d][s] = false;
+                }
+            }
+            document.querySelectorAll('.segment').forEach(seg => {
+                seg.classList.remove('on');
+            });
+            updateStatusMessage();
+        }
+
+        // add a small reset button
+        const resetLink = document.createElement('div');
+        resetLink.style.marginTop = '10px';
+        resetLink.style.textAlign = 'center';
+        resetLink.style.cursor = 'pointer';
+        resetLink.style.color = '#7f8c8d';
+        resetLink.style.textDecoration = 'underline';
+        resetLink.innerText = '↺ reset left segments';
+        resetLink.addEventListener('click', resetLeftSide);
+        document.querySelector('.left-panel').appendChild(resetLink);
+
+        // initialization
+        createDigitDisplays();
+        buildKeyboard();
+        updateWordDisplay();
+        updateStatusMessage();
+    })();
+</script>
+</body>
+</html>
